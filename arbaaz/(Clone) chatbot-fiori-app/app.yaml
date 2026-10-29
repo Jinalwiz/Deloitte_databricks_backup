@@ -1,0 +1,11 @@
+command: [
+  "flask",
+  "--app",
+  "app.py",
+  "run"
+]
+env:
+  - name: 'DATABRICKS_APP_URL'
+    value: 'https://chatbot-fiori-app-3227024006299960.aws.databricksapps.com'
+  - name: 'DATABRICKS_APP_URL'
+    value: 'https://chatbot-fiori-app-3227024006299960.aws.databricksapps.com'
