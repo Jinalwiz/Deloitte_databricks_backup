@@ -1,0 +1,385 @@
+{
+  "datasets": [
+    {
+      "name": "abe54cb0",
+      "displayName": "revenue prediction",
+      "queryLines": [
+        "WITH\r\n",
+        "aggregated AS (\r\n",
+        "  SELECT\r\n",
+        "    jeffdemo.dlife.v_billing_document_item_02.Billingdate AS BillingDate,\r\n",
+        "    SUM(jeffdemo.dlife.v_billing_document_item_02.`sum(netamount)`) AS Revenue,\r\n",
+        "    count(DISTINCT jeffdemo.dlife.v_billing_document_item_02.BillingDocument) as countb\r\n",
+        "  FROM jeffdemo.dlife.v_billing_document_item_02\r\n",
+        "  GROUP BY\r\n",
+        "    1\r\n",
+        ")\r\n",
+        "SELECT Billingdate, Revenue_forecast , 0 as Revenue_actual, 0 as Revenue_on_date, 0 as Document_count_on_date FROM AI_FORECAST(\r\n",
+        "  TABLE(aggregated),\r\n",
+        "  horizon =>  :param + 1,\r\n",
+        "  time_col => 'BillingDate',\r\n",
+        "  value_col => 'Revenue'\r\n",
+        ")\r\n",
+        "union ALL\r\n",
+        "  SELECT\r\n",
+        "    Billingdate AS BillingDate,\r\n",
+        "    0 as Revenue_forecast,\r\n",
+        "    SUM(`sum(netamount)`) AS Revenue_actual,\r\n",
+        "     0 as Revenue_on_date, 0 as Document_count_on_date\r\n",
+        "  FROM  jeffdemo.dlife.v_billing_document_item_02\r\n",
+        "   where Billingdate <= current_date() and Billingdate >= concat(year(current_date()),'-01-01')\r\n",
+        "  GROUP BY\r\n",
+        "    1\r\n",
+        "union ALL\r\n",
+        "SELECT BillingDate, 0 as Revenue_forecast,  0 as Revenue_actual, Revenue_forecast as Revenue_on_date, 0 as Document_count_on_date FROM AI_FORECAST(\r\n",
+        "  TABLE(aggregated),\r\n",
+        "  horizon =>  :param + 1,\r\n",
+        "  time_col => 'BillingDate',\r\n",
+        "  value_col => 'Revenue'\r\n",
+        ") \r\n",
+        "where to_date(BillingDate, 'MMM DD, YYYY') = :param\r\n",
+        "union ALL\r\n",
+        "SELECT BillingDate, 0 as Revenue_forecast,  0 as Revenue_actual, 0 as Revenue_on_date, cast(countb_forecast as int) as Document_count_on_date FROM AI_FORECAST(\r\n",
+        "  TABLE(aggregated),\r\n",
+        "  horizon =>  :param + 1,\r\n",
+        "  time_col => 'BillingDate',\r\n",
+        "  value_col => 'countb'\r\n",
+        ") \r\n",
+        "where to_date(BillingDate, 'MMM DD, YYYY') = :param\r\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "Forecast_Date",
+          "keyword": "param",
+          "dataType": "DATE",
+          "defaultSelection": {
+            "values": {
+              "dataType": "DATE",
+              "values": [
+                {
+                  "value": "2025-10-12T00:00:00.000"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "37075097",
+      "displayName": "Forecast",
+      "layout": [
+        {
+          "widget": {
+            "name": "2eb45eb1",
+            "queries": [
+              {
+                "name": "parameter_dashboards/01f0899fe22718d0b40652184b303b9a/datasets/01f089af445612409cb9942972fa4376_param",
+                "query": {
+                  "datasetName": "abe54cb0",
+                  "parameters": [
+                    {
+                      "name": "param",
+                      "keyword": "param"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "param",
+                    "queryName": "parameter_dashboards/01f0899fe22718d0b40652184b303b9a/datasets/01f089af445612409cb9942972fa4376_param"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast Date"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ec126051",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "abe54cb0",
+                  "fields": [
+                    {
+                      "name": "max(Billingdate)",
+                      "expression": "MAX(`Billingdate`)"
+                    },
+                    {
+                      "name": "sum(Document_count_on_date)",
+                      "expression": "SUM(`Document_count_on_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(Document_count_on_date)",
+                  "displayName": "Sum of Document_count_on_date"
+                },
+                "target": {
+                  "fieldName": "max(Billingdate)",
+                  "displayName": "Maximum Billingdate"
+                }
+              },
+              "frame": {
+                "title": "Billing Document Count Prediction",
+                "showTitle": true
+              }
+            },
+            "specExtensions": {
+              "widgetBorderColor": {
+                "light": "#A64141"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 2,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "a230ce0e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "abe54cb0",
+                  "fields": [
+                    {
+                      "name": "monthly(Billingdate)",
+                      "expression": "DATE_TRUNC(\"MONTH\", `Billingdate`)"
+                    },
+                    {
+                      "name": "sum(Revenue_actual)",
+                      "expression": "SUM(`Revenue_actual`)"
+                    },
+                    {
+                      "name": "sum(Revenue_forecast)",
+                      "expression": "SUM(`Revenue_forecast`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "forecast-line",
+              "encodings": {
+                "x": {
+                  "fieldName": "monthly(Billingdate)",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "format": {
+                    "type": "date",
+                    "date": "locale-short-month"
+                  },
+                  "displayName": "Billingdate"
+                },
+                "y": {
+                  "prediction": {
+                    "fieldName": "sum(Revenue_forecast)",
+                    "displayName": "Sum of Revenue_forecast"
+                  },
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "original": {
+                    "fieldName": "sum(Revenue_actual)",
+                    "displayName": "Sum of Revenue_actual"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "title": "Billing Revenue Forecast\nYoY"
+              }
+            },
+            "specExtensions": {
+              "widgetBorderColor": {
+                "light": "#AD3B3B"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 7,
+            "width": 4,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "d904b65b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "abe54cb0",
+                  "fields": [
+                    {
+                      "name": "max(BillingDate)",
+                      "expression": "MAX(`BillingDate`)"
+                    },
+                    {
+                      "name": "sum(Revenue_on_date)",
+                      "expression": "SUM(`Revenue_on_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(Revenue_on_date)",
+                  "displayName": "Sum of Revenue_on_date"
+                },
+                "target": {
+                  "fieldName": "max(BillingDate)",
+                  "displayName": "Maximum BillingDate"
+                }
+              },
+              "frame": {
+                "title": "Revenue Prediction",
+                "showTitle": true
+              }
+            },
+            "specExtensions": {
+              "widgetBorderColor": {
+                "light": "#683131"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 2,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "cebe3d33",
+            "multilineTextboxSpec": {
+              "lines": [
+                " "
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#774242"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "2b7787b7",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "abe54cb0",
+                  "fields": [
+                    {
+                      "name": "daily(Billingdate)",
+                      "expression": "DATE_TRUNC(\"DAY\", `Billingdate`)"
+                    },
+                    {
+                      "name": "sum(Revenue_on_date)",
+                      "expression": "SUM(`Revenue_on_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(Billingdate)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Billingdate"
+                },
+                "y": {
+                  "fieldName": "sum(Revenue_on_date)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Sum of Revenue_on_date"
+                }
+              },
+              "frame": {
+                "title": "Revenue on Date",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "9852a6c9",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

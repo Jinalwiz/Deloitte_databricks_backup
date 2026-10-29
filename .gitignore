@@ -1,0 +1,6 @@
+# Node.js dependencies (e.g. SAP Datasphere CLI)
+node_modules/
+
+# Genie spaces
+*.geniespace.json
+*dev-experiment
